@@ -54,7 +54,7 @@
   </style>
 </head>
 <body>
-  <h1>2025년 콘텐츠 담당 스케줄</h1>
+  <h1>2025년 아이멜리 콘텐츠 담당 스케줄</h1>
 
   <label for="name">이름을 선택하세요:</label>
   <select id="name">
@@ -84,7 +84,7 @@
     const people = ['김경진', '박에스더', '이민우'];
     const startDate = new Date('2025-05-29');
     const endDate = new Date('2025-12-31');
-    const holidays = ['2025-06-03', '2025-06-06'].map(d => new Date(d).toDateString());
+    const holidays = ['2025-06-03', '2025-06-06', '2025-08-15'].map(d => new Date(d).toDateString());
 
     const isWeekend = date => date.getDay() === 0 || date.getDay() === 6;
     const isHoliday = date => holidays.includes(date.toDateString());
