@@ -39,6 +39,7 @@
       background-color: #fff;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       margin-top: 20px;
+      display: none;
     }
     th, td {
       border: 1px solid #ddd;
@@ -51,10 +52,13 @@
     tr:hover {
       background-color: #f1f1f1;
     }
+    .selector-group {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>2025년 아이멜리 콘텐츠 담당 스케줄</h1>
+  <h1>2025년 콘텐츠 담당 스케줄</h1>
 
   <label for="name">이름을 선택하세요:</label>
   <select id="name">
@@ -66,9 +70,16 @@
 
   <div id="today-task">오늘의 담당 콘텐츠가 여기에 표시됩니다.</div>
 
-  <button id="show-month-btn">📅 이달의 스케줄 보기</button>
+  <button id="toggle-btn">📅 이달의 스케줄 보기</button>
 
-  <table>
+  <div class="selector-group">
+    <label for="month-select">📆 월별 선택:</label>
+    <select id="month-select">
+      <option value="">-- 월 선택 --</option>
+    </select>
+  </div>
+
+  <table id="schedule-table">
     <thead>
       <tr>
         <th>날짜 / 요일</th>
@@ -80,7 +91,7 @@
   </table>
 
   <script>
-    const contents = ['블로그', '뉴스', '커뮤니티'];
+    const contents = ['블로그', '뉴스 사이트', '커뮤니티'];
     const people = ['김경진', '박에스더', '이민우'];
     const startDate = new Date('2025-05-29');
     const endDate = new Date('2025-12-31');
@@ -90,6 +101,8 @@
     const isHoliday = date => holidays.includes(date.toDateString());
 
     const scheduleBody = document.getElementById('schedule-body');
+    const scheduleTable = document.getElementById('schedule-table');
+    const monthSelect = document.getElementById('month-select');
     const scheduleData = [];
     let dayCounter = 0;
 
@@ -102,6 +115,8 @@
       contents.forEach((content, idx) => {
         scheduleData.push({
           date: dateStr,
+          year: d.getFullYear(),
+          month: d.getMonth(),
           day: d.toLocaleDateString('ko-KR', { weekday: 'long' }),
           content,
           person: assignedPeople[idx]
@@ -111,16 +126,31 @@
       dayCounter++;
     }
 
-    function displayCurrentMonth() {
-      scheduleBody.innerHTML = ''; // 기존 표 제거
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+    // 오늘 담당자 표시
+    document.getElementById('name').addEventListener('change', function () {
+      const name = this.value;
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const tasks = scheduleData.filter(item => item.date === todayStr && item.person === name);
+      const display = document.getElementById('today-task');
+
+      if (name === '') {
+        display.textContent = '오늘의 담당 콘텐츠가 여기에 표시됩니다.';
+      } else if (tasks.length > 0) {
+        const taskList = tasks.map(t => t.content).join(', ');
+        display.textContent = `${todayStr}에 ${name}님의 담당 콘텐츠는: ${taskList}`;
+      } else {
+        display.textContent = `${todayStr}에 ${name}님의 담당 콘텐츠는 없습니다.`;
+      }
+    });
+
+    // 스케줄 테이블 그리기
+    function drawSchedule(year, month) {
+      scheduleBody.innerHTML = '';
       let currentDate = '';
 
       scheduleData.forEach((item, index, arr) => {
-        const itemDate = new Date(item.date);
-        if (itemDate.getMonth() !== currentMonth || itemDate.getFullYear() !== currentYear) return;
+        if (item.year !== year || item.month !== month) return;
 
         const row = document.createElement('tr');
         if (item.date !== currentDate) {
@@ -139,25 +169,41 @@
         }
         scheduleBody.appendChild(row);
       });
+
+      scheduleTable.style.display = scheduleBody.innerHTML ? 'table' : 'none';
     }
 
-    document.getElementById('show-month-btn').addEventListener('click', displayCurrentMonth);
-
-    document.getElementById('name').addEventListener('change', function () {
-      const name = this.value;
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const tasks = scheduleData.filter(item => item.date === todayStr && item.person === name);
-      const display = document.getElementById('today-task');
-
-      if (name === '') {
-        display.textContent = '오늘의 담당 콘텐츠가 여기에 표시됩니다.';
-      } else if (tasks.length > 0) {
-        const taskList = tasks.map(t => t.content).join(', ');
-        display.textContent = `${todayStr}에 ${name}님의 담당 콘텐츠는: ${taskList}`;
+    // 이달 보기 토글 버튼
+    let visible = false;
+    document.getElementById('toggle-btn').addEventListener('click', function () {
+      const now = new Date();
+      if (!visible) {
+        drawSchedule(now.getFullYear(), now.getMonth());
       } else {
-        display.textContent = `${todayStr}에 ${name}님의 담당 콘텐츠는 없습니다.`;
+        scheduleTable.style.display = 'none';
       }
+      visible = !visible;
+    });
+
+    // 월별 셀렉트 박스 구성
+    const uniqueMonths = [...new Set(scheduleData.map(i => `${i.year}-${i.month}`))];
+    uniqueMonths.forEach(key => {
+      const [year, month] = key.split('-').map(Number);
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = `${year}년 ${month + 1}월`;
+      monthSelect.appendChild(option);
+    });
+
+    // 월별 선택 이벤트
+    monthSelect.addEventListener('change', function () {
+      if (this.value === '') {
+        scheduleTable.style.display = 'none';
+        return;
+      }
+      const [year, month] = this.value.split('-').map(Number);
+      drawSchedule(year, month);
+      visible = true;
     });
   </script>
 </body>
